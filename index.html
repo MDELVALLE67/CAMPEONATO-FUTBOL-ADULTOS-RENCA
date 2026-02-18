@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campeonato Adultos Renca</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <style>
+        :root {
+            --primary: #5B6FED;
+            --secondary: #7B8CFF;
+            --accent: #FF6B6B;
+            --success: #51CF66;
+            --warning: #FFB84D;
+            --dark: #2D3748;
+            --light: #F7FAFC;
+            --border: #E2E8F0;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--dark);
+        }
+        .login-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 480px;
+            animation: slideUp 0.5s ease;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .login-header { text-align: center; margin-bottom: 30px; }
+        .login-header h1 {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 2.2rem;
+            color: var(--primary);
+            margin-bottom: 5px;
+            letter-spacing: 2px;
+        }
+        .login-header p { color: #718096; font-size: 0.95rem; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--dark); font-size: 0.9rem; }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s;
+            font-family: 'Poppins', sans-serif;
+            background: white;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(91, 111, 237, 0.1);
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Poppins', sans-serif;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(91, 111, 237, 0.3); }
+        .btn-secondary { background: #E2E8F0; color: var(--dark); margin-top: 10px; }
+        .btn-secondary:hover { background: #CBD5E0; }
+        .change-password-link { text-align: center; margin-top: 20px; }
+        .change-password-link a { color: var(--primary); text-decoration: none; font-size: 0.9rem; cursor: pointer; }
+        .change-password-link a:hover { text-decoration: underline; }
+        .app-container { display: none; max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .app-header {
+            background: white;
+            padding: 25px 30px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .app-title { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+        .app-title h1 {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 2rem;
+            color: var(--primary);
+            letter-spacing: 2px;
+        }
+        .user-badge {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .btn-small { padding: 10px 20px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.3s; font-size: 0.9rem; }
+        .btn-logout { background: var(--accent); color: white; }
+        .btn-logout:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3); }
+        .championship-selector {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .championship-selector h3 { color: var(--primary); font-size: 1.1rem; margin: 0; }
+        .championship-selector select {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 15px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+        }
+        .championship-selector input {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 15px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: 'Poppins', sans-serif;
+        }
+        .tabs {
+            background: white;
+            padding: 10px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            flex-wrap: wrap;
+        }
+        .tab {
+            flex: 1;
+            min-width: 120px;
+            padding: 15px;
+            border: none;
+            background: transparent;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Poppins', sans-serif;
+            color: #718096;
+        }
+        .tab.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 5px 15px rgba(91, 111, 237, 0.3);
+        }
+        .content-section { display: none; }
+        .content-section.active { display: block; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--border);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .card-header h2 {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 1.8rem;
+            color: var(--primary);
+            letter-spacing: 1px;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9rem; color: var(--dark); }
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+            font-family: 'Poppins', sans-serif;
+        }
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(91, 111, 237, 0.1);
+        }
+        .table-container { overflow-x: auto; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; background: white; }
+        thead { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; }
+        th {
+            padding: 15px 10px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        td { padding: 12px 10px; text-align: center; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        tbody tr:hover { background: #F7FAFC; }
+        .btn-action { padding: 6px 12px; margin: 0 3px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.3s; }
+        .btn-edit { background: var(--warning); color: white; }
+        .btn-delete { background: var(--accent); color: white; }
+        .btn-add { background: var(--success); color: white; padding: 12px 25px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; transition: all 0.3s; }
+        .btn-add:hover { box-shadow: 0 5px 15px rgba(81, 207, 102, 0.3); transform: translateY(-2px); }
+        .btn-pdf { background: var(--accent); color: white; padding: 10px 20px; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; transition: all 0.3s; font-size: 0.9rem; }
+        .btn-pdf:hover { box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3); transform: translateY(-2px); }
+        .empty-state { text-align: center; padding: 60px 20px; color: #A0AEC0; }
+        .filter-bar {
+            background: #F7FAFC;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: end;
+            flex-wrap: wrap;
+        }
+        .filter-bar .input-group { margin-bottom: 0; flex: 1; min-width: 150px; }
+        .btn-filter { background: var(--primary); color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s; font-size: 0.9rem; }
+        .btn-filter:hover { background: #4A5FDD; }
+        .loading { text-align: center; padding: 40px; color: white; font-size: 1.2rem; }
+        .alert { padding: 12px 15px; border-radius: 10px; margin-bottom: 15px; font-size: 0.9rem; }
+        .alert-error { background: #FED7D7; color: #C53030; border-left: 4px solid var(--accent); }
+        .alert-success { background: #C6F6D5; color: #2F855A; border-left: 4px solid var(--success); }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .modal.active {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: slideUp 0.3s ease;
+        }
+        .modal-header {
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--border);
+        }
+        .modal-header h3 {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 1.8rem;
+            color: var(--primary);
+            letter-spacing: 1px;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+        .modal-actions .btn {
+            flex: 1;
+        }
+        @media (max-width: 768px) {
+            .app-header { flex-direction: column; text-align: center; }
+            .tabs { flex-direction: column; }
+            .form-row { grid-template-columns: 1fr; }
+            table { font-size: 0.85rem; }
+            th, td { padding: 8px 5px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading" id="loadingScreen">🔥 Conectando con Firebase...</div>
+
+    <div id="loginScreen" class="login-container" style="display:none;">
+        <div class="login-box">
+            <div class="login-header">
+                <h1>⚽ Campeonato Renca</h1>
+                <p>Sistema de Gestión Adultos</p>
+            </div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>Usuario</label>
+                    <select id="loginUsername" required>
+                        <option value="Administrador">Administrador</option>
+                        <option value="Usuario">Usuario</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="loginPassword" placeholder="Ingrese contraseña" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
+            </form>
+            <div class="change-password-link">
+                <a id="changePasswordLink">¿Olvidó su contraseña? Cambiar aquí</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="changePasswordScreen" class="login-container" style="display: none;">
+        <div class="login-box">
+            <div class="login-header">
+                <h1>🔐 Cambiar Contraseña</h1>
+                <p>Actualiza tu contraseña de acceso</p>
+            </div>
+            <div id="changePasswordAlert"></div>
+            <form id="changePasswordForm">
+                <div class="form-group">
+                    <label>Usuario</label>
+                    <select id="changeUsername" required>
+                        <option value="Administrador">Administrador</option>
+                        <option value="Usuario">Usuario</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Contraseña Actual</label>
+                    <input type="password" id="currentPassword" required>
+                </div>
+                <div class="form-group">
+                    <label>Nueva Contraseña</label>
+                    <input type="password" id="newPassword" required>
+                </div>
+                <div class="form-group">
+                    <label>Confirmar Nueva Contraseña</label>
+                    <input type="password" id="confirmPassword" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Cambiar Contraseña</button>
+                <button type="button" class="btn btn-secondary" id="backToLogin">Volver al Login</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="appContainer" class="app-container">
+        <div class="app-header">
+            <div class="app-title">
+                <h1>⚽ CAMPEONATO ADULTOS RENCA</h1>
+                <span class="user-badge" id="userRole"></span>
+            </div>
+            <div class="header-actions">
+                <button class="btn-small btn-logout" id="logoutBtn">Cerrar Sesión</button>
+            </div>
+        </div>
+
+        <div class="championship-selector">
+            <h3>Seleccionar Campeonato</h3>
+            <select id="championshipSelect"></select>
+            <input type="text" id="newChampionshipName" placeholder="Nombre del campeonato" style="display:none;">
+            <button class="btn-add" id="addChampionshipBtn" style="padding: 10px 20px;">+ Nuevo</button>
+            <button class="btn-small" id="deleteChampionshipBtn" style="padding: 10px 20px; background: #FF6B6B; display:none;">🗑️ Eliminar</button>
+            <button class="btn-small" id="refreshBtn" style="padding: 10px 20px; background: #51CF66;">🔄 Actualizar</button>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" data-category="tercera">3° Adultos</button>
+            <button class="tab" data-category="segunda">2° Adultos</button>
+            <button class="tab" data-category="primera">1° Adultos</button>
+            <button class="tab" data-category="general">🏆 Tabla General</button>
+        </div>
+
+        <div id="content-tercera" class="content-section active">
+            <div class="card" id="admin-form-tercera">
+                <div class="card-header"><h2>Agregar Equipo - 3° Adultos</h2></div>
+                <form id="form-tercera">
+                    <div class="input-group"><label>Nombre del Equipo</label><input type="text" name="nombre" required></div>
+                    <button type="submit" class="btn btn-add">+ Agregar Equipo</button>
+                </form>
+            </div>
+            <div class="card" id="admin-result-tercera">
+                <div class="card-header"><h2>Ingresar Resultado - 3° Adultos</h2></div>
+                <form id="result-form-tercera">
+                    <div class="form-row">
+                        <div class="input-group"><label>Fecha del Partido</label><input type="date" name="fecha" required></div>
+                        <div class="input-group"><label>Equipo Local</label><select name="equipoLocal" required></select></div>
+                        <div class="input-group"><label>Goles Local</label><input type="number" name="golesLocal" min="0" required></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="input-group"><label>Equipo Visitante</label><select name="equipoVisitante" required></select></div>
+                        <div class="input-group"><label>Goles Visitante</label><input type="number" name="golesVisitante" min="0" required></div>
+                    </div>
+                    <button type="submit" class="btn btn-add">Agregar Resultado</button>
+                </form>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h2>Tabla de Posiciones - 3° Adultos <small style="font-size:0.8rem;color:#718096">(Victoria = 2pts)</small></h2>
+                    <button class="btn-pdf" onclick="generatePDF('tercera')">📄 Generar PDF</button>
+                </div>
+                <div class="table-container"><table id="table-tercera"></table></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h2>Resultados - 3° Adultos</h2></div>
+                <div class="filter-bar">
+                    <div class="input-group"><label>Desde</label><input type="date" id="filter-desde-tercera"></div>
+                    <div class="input-group"><label>Hasta</label><input type="date" id="filter-hasta-tercera"></div>
+                    <button class="btn-filter" onclick="filterResults('tercera')">Filtrar</button>
+                </div>
+                <div class="table-container"><table id="results-table-tercera"></table></div>
+            </div>
+        </div>
+
+        <div id="content-segunda" class="content-section">
+            <div class="card" id="admin-form-segunda">
+                <div class="card-header"><h2>Agregar Equipo - 2° Adultos</h2></div>
+                <form id="form-segunda">
+                    <div class="input-group"><label>Nombre del Equipo</label><input type="text" name="nombre" required></div>
+                    <button type="submit" class="btn btn-add">+ Agregar Equipo</button>
+                </form>
+            </div>
+            <div class="card" id="admin-result-segunda">
+                <div class="card-header"><h2>Ingresar Resultado - 2° Adultos</h2></div>
+                <form id="result-form-segunda">
+                    <div class="form-row">
+                        <div class="input-group"><label>Fecha del Partido</label><input type="date" name="fecha" required></div>
+                        <div class="input-group"><label>Equipo Local</label><select name="equipoLocal" required></select></div>
+                        <div class="input-group"><label>Goles Local</label><input type="number" name="golesLocal" min="0" required></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="input-group"><label>Equipo Visitante</label><select name="equipoVisitante" required></select></div>
+                        <div class="input-group"><label>Goles Visitante</label><input type="number" name="golesVisitante" min="0" required></div>
+                    </div>
+                    <button type="submit" class="btn btn-add">Agregar Resultado</button>
+                </form>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h2>Tabla de Posiciones - 2° Adultos <small style="font-size:0.8rem;color:#718096">(Victoria = 4pts)</small></h2>
+                    <button class="btn-pdf" onclick="generatePDF('segunda')">📄 Generar PDF</button>
+                </div>
+                <div class="table-container"><table id="table-segunda"></table></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h2>Resultados - 2° Adultos</h2></div>
+                <div class="filter-bar">
+                    <div class="input-group"><label>Desde</label><input type="date" id="filter-desde-segunda"></div>
+                    <div class="input-group"><label>Hasta</label><input type="date" id="filter-hasta-segunda"></div>
+                    <button class="btn-filter" onclick="filterResults('segunda')">Filtrar</button>
+                </div>
+                <div class="table-container"><table id="results-table-segunda"></table></div>
+            </div>
+        </div>
+
+        <div id="content-primera" class="content-section">
+            <div class="card" id="admin-form-primera">
+                <div class="card-header"><h2>Agregar Equipo - 1° Adultos</h2></div>
+                <form id="form-primera">
+                    <div class="input-group"><label>Nombre del Equipo</label><input type="text" name="nombre" required></div>
+                    <button type="submit" class="btn btn-add">+ Agregar Equipo</button>
+                </form>
+            </div>
+            <div class="card" id="admin-result-primera">
+                <div class="card-header"><h2>Ingresar Resultado - 1° Adultos</h2></div>
+                <form id="result-form-primera">
+                    <div class="form-row">
+                        <div class="input-group"><label>Fecha del Partido</label><input type="date" name="fecha" required></div>
+                        <div class="input-group"><label>Equipo Local</label><select name="equipoLocal" required></select></div>
+                        <div class="input-group"><label>Goles Local</label><input type="number" name="golesLocal" min="0" required></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="input-group"><label>Equipo Visitante</label><select name="equipoVisitante" required></select></div>
+                        <div class="input-group"><label>Goles Visitante</label><input type="number" name="golesVisitante" min="0" required></div>
+                    </div>
+                    <button type="submit" class="btn btn-add">Agregar Resultado</button>
+                </form>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h2>Tabla de Posiciones - 1° Adultos <small style="font-size:0.8rem;color:#718096">(Victoria = 6pts)</small></h2>
+                    <button class="btn-pdf" onclick="generatePDF('primera')">📄 Generar PDF</button>
+                </div>
+                <div class="table-container"><table id="table-primera"></table></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h2>Resultados - 1° Adultos</h2></div>
+                <div class="filter-bar">
+                    <div class="input-group"><label>Desde</label><input type="date" id="filter-desde-primera"></div>
+                    <div class="input-group"><label>Hasta</label><input type="date" id="filter-hasta-primera"></div>
+                    <button class="btn-filter" onclick="filterResults('primera')">Filtrar</button>
+                </div>
+                <div class="table-container"><table id="results-table-primera"></table></div>
+            </div>
+        </div>
+
+        <div id="content-general" class="content-section">
+            <div class="card">
+                <div class="card-header">
+                    <h2>🏆 Tabla General - Suma de todas las series</h2>
+                    <button class="btn-pdf" onclick="generatePDFGeneral()">📄 Generar PDF</button>
+                </div>
+                <p style="color:#718096;margin-bottom:15px;font-size:0.9rem;">
+                    Puntos totales sumando 3° Adultos (2pts victoria) + 2° Adultos (4pts victoria) + 1° Adultos (6pts victoria)
+                </p>
+                <div class="filter-bar">
+                    <div class="input-group">
+                        <label>Desde</label>
+                        <input type="date" id="filter-desde-general">
+                    </div>
+                    <div class="input-group">
+                        <label>Hasta</label>
+                        <input type="date" id="filter-hasta-general">
+                    </div>
+                    <button class="btn-filter" onclick="filterGeneralTable()">Filtrar</button>
+                    <button class="btn-filter" onclick="clearGeneralFilters()" style="background:#E2E8F0;color:#2D3748;">Limpiar</button>
+                </div>
+                <div class="table-container"><table id="table-general"></table></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL EDITAR EQUIPO -->
+    <div id="editTeamModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Editar Equipo</h3>
+            </div>
+            <form id="editTeamForm">
+                <div class="input-group">
+                    <label>Nombre del Equipo</label>
+                    <input type="text" id="editTeamName" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeEditTeamModal()">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL EDITAR RESULTADO -->
+    <div id="editResultModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Editar Resultado</h3>
+            </div>
+            <form id="editResultForm">
+                <div class="input-group">
+                    <label>Fecha</label>
+                    <input type="date" id="editResultFecha" required>
+                </div>
+                <div class="input-group">
+                    <label>Equipo Local</label>
+                    <input type="text" id="editResultLocal" readonly style="background: #f0f0f0;">
+                </div>
+                <div class="input-group">
+                    <label>Goles Local</label>
+                    <input type="number" id="editResultGolesLocal" min="0" required>
+                </div>
+                <div class="input-group">
+                    <label>Equipo Visitante</label>
+                    <input type="text" id="editResultVisitante" readonly style="background: #f0f0f0;">
+                </div>
+                <div class="input-group">
+                    <label>Goles Visitante</label>
+                    <input type="number" id="editResultGolesVisitante" min="0" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeEditResultModal()">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURACIÓN DE FIREBASE - CAMPEONATO INFANTIL
+        const firebaseConfig = {
+          apiKey: "AIzaSyD1pXQ_6lIKyag1eiSftakf836vr72b_wY",
+          authDomain: "campeonato-renca-adultos.firebaseapp.com",
+          projectId: "campeonato-renca-adultos",
+          storageBucket: "campeonato-renca-adultos.firebasestorage.app",
+          messagingSenderId: "176830656012",
+          appId: "1:176830656012:web:5514f12bfd8a9a830e8829"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let currentUser = null;
+        let currentCategory = 'tercera';
+        let currentChampionshipId = null;
+        let championships = [];
+        let unsubscribe = null;
+
+        const defaultUsers = {
+            Administrador: { username: 'Administrador', password: 'admin123', role: 'Administrador' },
+            Usuario: { username: 'Usuario', password: 'usuario123', role: 'Usuario' }
+        };
+
+        async function initializeDefaultData() {
+            try {
+                const usersDoc = await db.collection('settings').doc('users').get();
+                if (!usersDoc.exists) {
+                    await db.collection('settings').doc('users').set({ data: defaultUsers });
+                }
+
+                const champsDoc = await db.collection('settings').doc('championships').get();
+                if (!champsDoc.exists) {
+                    const defaultChamp = {
+                        id: Date.now(),
+                        name: 'Campeonato 1',
+                        teams: { tercera: [], segunda: [], primera: [] },
+                        results: { tercera: [], segunda: [], primera: [] }
+                    };
+                    await db.collection('settings').doc('championships').set({ data: [defaultChamp] });
+                }
+            } catch (error) {
+                console.error('Error initializing:', error);
+                alert('Error al inicializar. Verifica tu conexión.');
+            }
+        }
+
+        function subscribeToChampionships() {
+            if (unsubscribe) unsubscribe();
+            
+            unsubscribe = db.collection('settings').doc('championships').onSnapshot((doc) => {
+                if (doc.exists) {
+                    championships = doc.data().data || [];
+                    if (currentUser) {
+                        updateChampionshipSelect();
+                        renderAllTables();
+                        renderAllResults();
+                    }
+                }
+            }, (error) => {
+                console.error('Error listening:', error);
+            });
+        }
+
+        async function saveChampionships() {
+            try {
+                await db.collection('settings').doc('championships').set({ data: championships });
+            } catch (error) {
+                console.error('Error saving:', error);
+                alert('Error al guardar. Verifica tu conexión.');
+            }
+        }
+
+        function getCurrentChampionship() {
+            return championships.find(c => c.id == currentChampionshipId) || championships[0];
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            const usersDoc = await db.collection('settings').doc('users').get();
+            const users = usersDoc.data().data;
+            const user = users[username];
+
+            if (user && user.password === password) {
+                currentUser = user;
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('appContainer').style.display = 'block';
+                document.getElementById('userRole').textContent = user.role;
+                loadApp();
+            } else {
+                alert('Contraseña incorrecta');
+            }
+        });
+
+        document.getElementById('changePasswordLink').addEventListener('click', function() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('changePasswordScreen').style.display = 'flex';
+        });
+
+        document.getElementById('backToLogin').addEventListener('click', function() {
+            document.getElementById('changePasswordScreen').style.display = 'none';
+            document.getElementById('loginScreen').style.display = 'flex';
+            document.getElementById('changePasswordForm').reset();
+            document.getElementById('changePasswordAlert').innerHTML = '';
+        });
+
+        document.getElementById('changePasswordForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('changeUsername').value;
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const alertDiv = document.getElementById('changePasswordAlert');
+            
+            const usersDoc = await db.collection('settings').doc('users').get();
+            const users = usersDoc.data().data;
+            const user = users[username];
+
+            if (!user) {
+                alertDiv.innerHTML = '<div class="alert alert-error">Usuario no encontrado</div>';
+                return;
+            }
+
+            if (user.password !== currentPassword) {
+                alertDiv.innerHTML = '<div class="alert alert-error">La contraseña actual es incorrecta</div>';
+                return;
+            }
+
+            if (newPassword.length < 6) {
+                alertDiv.innerHTML = '<div class="alert alert-error">La nueva contraseña debe tener al menos 6 caracteres</div>';
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                alertDiv.innerHTML = '<div class="alert alert-error">Las contraseñas no coinciden</div>';
+                return;
+            }
+
+            user.password = newPassword;
+            await db.collection('settings').doc('users').set({ data: users });
+            alertDiv.innerHTML = '<div class="alert alert-success">Contraseña cambiada exitosamente</div>';
+            
+            setTimeout(() => {
+                document.getElementById('changePasswordScreen').style.display = 'none';
+                document.getElementById('loginScreen').style.display = 'flex';
+                document.getElementById('changePasswordForm').reset();
+                alertDiv.innerHTML = '';
+            }, 2000);
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            if (unsubscribe) unsubscribe();
+            currentUser = null;
+            document.getElementById('appContainer').style.display = 'none';
+            document.getElementById('loginScreen').style.display = 'flex';
+            document.getElementById('loginForm').reset();
+        });
+
+        document.getElementById('addChampionshipBtn').addEventListener('click', async function() {
+            if (currentUser.role !== 'Administrador') {
+                alert('Solo el administrador puede crear campeonatos');
+                return;
+            }
+            const input = document.getElementById('newChampionshipName');
+            const btn = this;
+            
+            if (input.style.display === 'none') {
+                input.style.display = 'block';
+                btn.textContent = 'Guardar';
+                input.focus();
+            } else {
+                const name = input.value.trim();
+                if (name) {
+                    championships.push({
+                        id: Date.now(),
+                        name: name,
+                        teams: { tercera: [], segunda: [], primera: [] },
+                        results: { tercera: [], segunda: [], primera: [] }
+                    });
+                    await saveChampionships();
+                    input.value = '';
+                }
+                input.style.display = 'none';
+                btn.textContent = '+ Nuevo Campeonato';
+            }
+        });
+
+        document.getElementById('championshipSelect').addEventListener('change', function() {
+            currentChampionshipId = parseInt(this.value);
+            console.log('Championship changed to:', currentChampionshipId);
+            renderAllTables();
+            renderAllResults();
+            updateTeamSelects();
+        });
+
+        document.getElementById('refreshBtn').addEventListener('click', function() {
+            console.log('Refreshing all data...');
+            renderAllTables();
+            renderAllResults();
+            updateTeamSelects();
+        });
+
+        document.getElementById('deleteChampionshipBtn').addEventListener('click', async function() {
+            if (currentUser.role !== 'Administrador') {
+                alert('Solo el administrador puede eliminar campeonatos');
+                return;
+            }
+            
+            if (championships.length <= 1) {
+                alert('Debe existir al menos un campeonato');
+                return;
+            }
+
+            const championship = getCurrentChampionship();
+            if (!confirm(`¿Está seguro de eliminar el campeonato "${championship.name}"? Esta acción no se puede deshacer.`)) {
+                return;
+            }
+
+            championships = championships.filter(c => c.id != currentChampionshipId);
+            await db.collection('settings').doc('championships').set({ data: championships });
+            
+            currentChampionshipId = championships[0].id;
+            updateChampionshipSelect();
+            renderAllTables();
+            renderAllResults();
+            updateTeamSelects();
+        });
+
+        function updateChampionshipSelect() {
+            const select = document.getElementById('championshipSelect');
+            const prevId = currentChampionshipId;
+            select.innerHTML = championships.map(c => 
+                `<option value="${c.id}">${c.name}</option>`
+            ).join('');
+            
+            if (!currentChampionshipId && championships.length > 0) {
+                currentChampionshipId = championships[0].id;
+            }
+            // Restaurar la selección actual sin perder el campeonato elegido
+            if (prevId && championships.find(c => c.id == prevId)) {
+                select.value = prevId;
+                currentChampionshipId = prevId;
+            } else {
+                currentChampionshipId = championships[0] ? championships[0].id : null;
+                select.value = currentChampionshipId || '';
+            }
+        }
+
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.content-section').forEach(c => c.classList.remove('active'));
+                this.classList.add('active');
+                currentCategory = this.dataset.category;
+                document.getElementById('content-' + currentCategory).classList.add('active');
+            });
+        });
+
+        async function loadApp() {
+            subscribeToChampionships();
+            updateChampionshipSelect();
+            setupUI();
+        }
+
+        function setupUI() {
+            const isAdmin = currentUser.role === 'Administrador';
+            document.getElementById('addChampionshipBtn').style.display = isAdmin ? 'inline-block' : 'none';
+            document.getElementById('deleteChampionshipBtn').style.display = isAdmin ? 'inline-block' : 'none';
+            document.getElementById('newChampionshipName').style.display = 'none';
+
+            ['tercera', 'segunda', 'primera'].forEach(cat => {
+                const formCard = document.getElementById(`admin-form-${cat}`);
+                const resultCard = document.getElementById(`admin-result-${cat}`);
+                if (formCard) formCard.style.display = isAdmin ? 'block' : 'none';
+                if (resultCard) resultCard.style.display = isAdmin ? 'block' : 'none';
+            });
+
+            setupCategory('tercera');
+            setupCategory('segunda');
+            setupCategory('primera');
+            renderAllTables();
+            renderAllResults();
+        }
+
+        // PUNTOS POR VICTORIA SEGÚN SERIE
+        const victoryPoints = {
+            'tercera': 2,
+            'segunda': 4,
+            'primera': 6
+        };
+
+        function setupCategory(category) {
+            const isAdmin = currentUser.role === 'Administrador';
+            const teamForm = document.getElementById('form-' + category);
+            
+            if (teamForm) {
+                teamForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    if (!isAdmin) return;
+
+                    const nombre = this.querySelector('[name="nombre"]').value.trim();
+                    if (!nombre) return;
+
+                    const championship = getCurrentChampionship();
+                    championship.teams[category].push({
+                        id: Date.now(),
+                        nombre: nombre,
+                        PJ: 0, PG: 0, PE: 0, PP: 0,
+                        GF: 0, GC: 0, DG: 0, Pts: 0
+                    });
+
+                    await saveChampionships();
+                    this.reset();
+                    renderAllTables();
+                });
+            }
+
+            const resultForm = document.getElementById('result-form-' + category);
+            if (resultForm) {
+                resultForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    if (!isAdmin) return;
+
+                    const formData = new FormData(this);
+                    const equipoLocal = formData.get('equipoLocal');
+                    const equipoVisitante = formData.get('equipoVisitante');
+                    const golesLocal = parseInt(formData.get('golesLocal'));
+                    const golesVisitante = parseInt(formData.get('golesVisitante'));
+                    const fecha = formData.get('fecha');
+
+                    if (equipoLocal === equipoVisitante) {
+                        alert('Los equipos deben ser diferentes');
+                        return;
+                    }
+
+                    const championship = getCurrentChampionship();
+                    championship.results[category].push({
+                        id: Date.now(),
+                        fecha, equipoLocal, equipoVisitante,
+                        golesLocal, golesVisitante
+                    });
+
+                    const teamLocal = championship.teams[category].find(t => t.nombre === equipoLocal);
+                    const teamVisitante = championship.teams[category].find(t => t.nombre === equipoVisitante);
+
+                    if (teamLocal && teamVisitante) {
+                        teamLocal.PJ++;
+                        teamVisitante.PJ++;
+                        teamLocal.GF += golesLocal;
+                        teamLocal.GC += golesVisitante;
+                        teamVisitante.GF += golesVisitante;
+                        teamVisitante.GC += golesLocal;
+
+                        if (golesLocal > golesVisitante) {
+                            teamLocal.PG++;
+                            const pts = victoryPoints[category];
+                            teamLocal.Pts += pts;
+                            teamVisitante.PP++;
+                        } else if (golesLocal < golesVisitante) {
+                            teamVisitante.PG++;
+                            const pts = victoryPoints[category];
+                            teamVisitante.Pts += pts;
+                            teamLocal.PP++;
+                        } else {
+                            teamLocal.PE++;
+                            teamVisitante.PE++;
+                            teamLocal.Pts += 1;
+                            teamVisitante.Pts += 1;
+                        }
+
+                        teamLocal.DG = teamLocal.GF - teamLocal.GC;
+                        teamVisitante.DG = teamVisitante.GF - teamVisitante.GC;
+                    }
+
+                    await saveChampionships();
+                    this.reset();
+                    renderAllTables();
+                    renderAllResults();
+                });
+            }
+        }
+
+        function renderAllTables() {
+            renderTable('tercera');
+            renderTable('segunda');
+            renderTable('primera');
+            renderGeneralTable();
+            updateTeamSelects();
+        }
+
+        function renderAllResults() {
+            filterResults('tercera');
+            filterResults('segunda');
+            filterResults('primera');
+        }
+
+        function renderTable(category) {
+            const table = document.getElementById('table-' + category);
+            const isAdmin = currentUser.role === 'Administrador';
+            const championship = getCurrentChampionship();
+            if (!championship || !championship.teams || !championship.teams[category]) return;
+            
+            const sortedTeams = [...championship.teams[category]].sort((a, b) => {
+                if (b.Pts !== a.Pts) return b.Pts - a.Pts;
+                if (b.DG !== a.DG) return b.DG - a.DG;
+                return b.GF - a.GF;
+            });
+
+            let html = `
+                <thead>
+                    <tr>
+                        <th>Pos</th><th>Equipo</th><th>PJ</th><th>PG</th><th>PE</th><th>PP</th>
+                        <th>GF</th><th>GC</th><th>DG</th><th>Pts</th>
+                        ${isAdmin ? '<th>Acciones</th>' : ''}
+                    </tr>
+                </thead>
+                <tbody>
+            `;
+
+            if (sortedTeams.length === 0) {
+                html += `<tr><td colspan="${isAdmin ? '11' : '10'}" class="empty-state">No hay equipos registrados</td></tr>`;
+            } else {
+                sortedTeams.forEach((team, index) => {
+                    html += `
+                        <tr>
+                            <td><strong>${index + 1}</strong></td>
+                            <td><strong>${team.nombre}</strong></td>
+                            <td>${team.PJ}</td><td>${team.PG}</td><td>${team.PE}</td><td>${team.PP}</td>
+                            <td>${team.GF}</td><td>${team.GC}</td><td>${team.DG}</td><td><strong>${team.Pts}</strong></td>
+                            ${isAdmin ? `<td>
+                                <button class="btn-action btn-edit" onclick="editTeam('${category}', ${team.id})">Editar</button>
+                                <button class="btn-action btn-delete" onclick="deleteTeam('${category}', ${team.id})">Eliminar</button>
+                            </td>` : ''}
+                        </tr>
+                    `;
+                });
+            }
+
+            html += '</tbody>';
+            table.innerHTML = html;
+        }
+
+        function filterResults(category) {
+            const championship = getCurrentChampionship();
+            const resultsTable = document.getElementById('results-table-' + category);
+            const isAdmin = currentUser.role === 'Administrador';
+            if (!championship || !championship.results || !championship.results[category]) return;
+            
+            const desde = document.getElementById('filter-desde-' + category).value;
+            const hasta = document.getElementById('filter-hasta-' + category).value;
+
+            let results = [...championship.results[category]].sort((a, b) => 
+                new Date(b.fecha) - new Date(a.fecha)
+            );
+
+            if (desde) results = results.filter(r => r.fecha >= desde);
+            if (hasta) results = results.filter(r => r.fecha <= hasta);
+
+            let html = `
+                <thead>
+                    <tr>
+                        <th>Fecha</th><th>Equipo Local</th><th>Resultado</th><th>Equipo Visitante</th>
+                        ${isAdmin ? '<th>Acciones</th>' : ''}
+                    </tr>
+                </thead>
+                <tbody>
+            `;
+
+            if (results.length === 0) {
+                html += `<tr><td colspan="${isAdmin ? '5' : '4'}" class="empty-state">No hay resultados</td></tr>`;
+            } else {
+                results.forEach((result) => {
+                    html += `
+                        <tr>
+                            <td>${result.fecha.split('-').reverse().join('-')}</td>
+                            <td><strong>${result.equipoLocal}</strong></td>
+                            <td><strong>${result.golesLocal} - ${result.golesVisitante}</strong></td>
+                            <td><strong>${result.equipoVisitante}</strong></td>
+                            ${isAdmin ? `<td>
+                                <button class="btn-action btn-edit" onclick="editResult('${category}', ${result.id})">Editar</button>
+                                <button class="btn-action btn-delete" onclick="deleteResult('${category}', ${result.id})">Eliminar</button>
+                            </td>` : ''}
+                        </tr>
+                    `;
+                });
+            }
+
+            html += '</tbody>';
+            resultsTable.innerHTML = html;
+        }
+
+        function updateTeamSelects() {
+            const championship = getCurrentChampionship();
+            
+            ['tercera', 'segunda', 'primera', 'juvenil'].forEach(category => {
+                const localSelect = document.querySelector(`#result-form-${category} [name="equipoLocal"]`);
+                const visitanteSelect = document.querySelector(`#result-form-${category} [name="equipoVisitante"]`);
+
+                if (localSelect && visitanteSelect) {
+                    const options = championship.teams[category].map(team => 
+                        `<option value="${team.nombre}">${team.nombre}</option>`
+                    ).join('');
+
+                    localSelect.innerHTML = '<option value="">Seleccionar equipo</option>' + options;
+                    visitanteSelect.innerHTML = '<option value="">Seleccionar equipo</option>' + options;
+                }
+            });
+        }
+
+        function renderGeneralTable() {
+            const table = document.getElementById('table-general');
+            if (!table) return;
+
+            const championship = getCurrentChampionship();
+            const desde = document.getElementById('filter-desde-general')?.value;
+            const hasta = document.getElementById('filter-hasta-general')?.value;
+            const generalMap = {};
+
+            ['tercera', 'segunda', 'primera'].forEach(cat => {
+                // Filter results by date if filters are set
+                let results = championship.results[cat];
+                if (desde) results = results.filter(r => r.fecha >= desde);
+                if (hasta) results = results.filter(r => r.fecha <= hasta);
+
+                championship.teams[cat].forEach(team => {
+                    if (!generalMap[team.nombre]) {
+                        generalMap[team.nombre] = { nombre: team.nombre, Pts3: 0, Pts2: 0, Pts1: 0, Total: 0 };
+                    }
+                    
+                    // Recalculate points based on filtered results
+                    const teamResults = results.filter(r => r.equipoLocal === team.nombre || r.equipoVisitante === team.nombre);
+                    let pts = 0;
+                    const victoryPts = victoryPoints[cat];
+                    
+                    teamResults.forEach(result => {
+                        if (result.equipoLocal === team.nombre) {
+                            if (result.golesLocal > result.golesVisitante) pts += victoryPts;
+                            else if (result.golesLocal === result.golesVisitante) pts += 1;
+                        } else {
+                            if (result.golesVisitante > result.golesLocal) pts += victoryPts;
+                            else if (result.golesVisitante === result.golesLocal) pts += 1;
+                        }
+                    });
+                    
+                    if (cat === 'tercera') generalMap[team.nombre].Pts3 = pts;
+                    if (cat === 'segunda') generalMap[team.nombre].Pts2 = pts;
+                    if (cat === 'primera') generalMap[team.nombre].Pts1 = pts;
+                    generalMap[team.nombre].Total = generalMap[team.nombre].Pts3 + generalMap[team.nombre].Pts2 + generalMap[team.nombre].Pts1;
+                });
+            });
+
+            const sorted = Object.values(generalMap).sort((a, b) => b.Total - a.Total);
+
+            let html = `
+                <thead>
+                    <tr>
+                        <th>Pos</th><th>Club</th><th>3° Adultos</th><th>2° Adultos</th><th>1° Adultos</th><th>TOTAL</th>
+                    </tr>
+                </thead>
+                <tbody>
+            `;
+
+            if (sorted.length === 0) {
+                html += `<tr><td colspan="6" class="empty-state">No hay datos todavía</td></tr>`;
+            } else {
+                sorted.forEach((team, index) => {
+                    html += `
+                        <tr style="${index === 0 ? 'background: #FFF9C4;' : ''}">
+                            <td><strong>${index + 1}</strong></td>
+                            <td><strong>${team.nombre}</strong></td>
+                            <td>${team.Pts3}</td>
+                            <td>${team.Pts2}</td>
+                            <td>${team.Pts1}</td>
+                            <td><strong style="color: #5B6FED; font-size: 1.1rem;">${team.Total}</strong></td>
+                        </tr>
+                    `;
+                });
+            }
+
+            html += '</tbody>';
+            table.innerHTML = html;
+        }
+
+        function filterGeneralTable() {
+            renderGeneralTable();
+        }
+
+        function clearGeneralFilters() {
+            document.getElementById('filter-desde-general').value = '';
+            document.getElementById('filter-hasta-general').value = '';
+            renderGeneralTable();
+        }
+
+        function generatePDFGeneral() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const championship = getCurrentChampionship();
+            const desde = document.getElementById('filter-desde-general')?.value;
+            const hasta = document.getElementById('filter-hasta-general')?.value;
+
+            // Header
+            doc.setFontSize(18);
+            doc.setFont(undefined, 'bold');
+            doc.text(championship.name.toUpperCase(), 105, 15, { align: 'center' });
+            
+            doc.setFontSize(14);
+            let title = 'TABLA GENERAL';
+            if (desde && hasta) {
+                title += ` (${desde.split('-').reverse().join('/')} - ${hasta.split('-').reverse().join('/')})`;
+            } else if (desde) {
+                title += ` (Desde ${desde.split('-').reverse().join('/')})`;
+            } else if (hasta) {
+                title += ` (Hasta ${hasta.split('-').reverse().join('/')})`;
+            }
+            doc.text(title, 105, 23, { align: 'center' });
+            
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            doc.text(`Fecha: ${new Date().toLocaleDateString('es-CL')}`, 14, 30);
+
+            const generalMap = {};
+            ['tercera', 'segunda', 'primera'].forEach(cat => {
+                // Filter results by date
+                let results = championship.results[cat];
+                if (desde) results = results.filter(r => r.fecha >= desde);
+                if (hasta) results = results.filter(r => r.fecha <= hasta);
+
+                championship.teams[cat].forEach(team => {
+                    if (!generalMap[team.nombre]) {
+                        generalMap[team.nombre] = { nombre: team.nombre, Pts3: 0, Pts2: 0, Pts1: 0, Total: 0 };
+                    }
+                    
+                    // Recalculate points based on filtered results
+                    const teamResults = results.filter(r => r.equipoLocal === team.nombre || r.equipoVisitante === team.nombre);
+                    let pts = 0;
+                    const victoryPts = victoryPoints[cat];
+                    
+                    teamResults.forEach(result => {
+                        if (result.equipoLocal === team.nombre) {
+                            if (result.golesLocal > result.golesVisitante) pts += victoryPts;
+                            else if (result.golesLocal === result.golesVisitante) pts += 1;
+                        } else {
+                            if (result.golesVisitante > result.golesLocal) pts += victoryPts;
+                            else if (result.golesVisitante === result.golesLocal) pts += 1;
+                        }
+                    });
+                    
+                    if (cat === 'tercera') generalMap[team.nombre].Pts3 = pts;
+                    if (cat === 'segunda') generalMap[team.nombre].Pts2 = pts;
+                    if (cat === 'primera') generalMap[team.nombre].Pts1 = pts;
+                    generalMap[team.nombre].Total = generalMap[team.nombre].Pts3 + generalMap[team.nombre].Pts2 + generalMap[team.nombre].Pts1;
+                });
+            });
+
+            const sorted = Object.values(generalMap).sort((a, b) => b.Total - a.Total);
+            const tableData = sorted.map((team, index) => [index + 1, team.nombre, team.Pts3, team.Pts2, team.Pts1, team.Total]);
+
+            doc.autoTable({
+                head: [['Pos', 'Club', '3° Adultos', '2° Adultos', '1° Adultos', 'TOTAL']],
+                body: tableData,
+                startY: 35,
+                theme: 'grid',
+                headStyles: { fillColor: [91, 111, 237], textColor: 255, fontStyle: 'bold', halign: 'center' },
+                bodyStyles: { halign: 'center' },
+                columnStyles: { 1: { halign: 'left' } }
+            });
+
+            doc.save(`Tabla_General_${championship.name}_${new Date().toISOString().split('T')[0]}.pdf`);
+        }
+
+        function generatePDF(category) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            const categoryNames = {
+                'tercera': '3° ADULTOS',
+                'segunda': '2° ADULTOS',
+                'primera': '1° ADULTOS'
+            };
+
+            const championship = getCurrentChampionship();
+            const desde = document.getElementById('filter-desde-' + category).value;
+            const hasta = document.getElementById('filter-hasta-' + category).value;
+
+            // Header with title and date
+            doc.setFontSize(18);
+            doc.setFont(undefined, 'bold');
+            doc.text(championship.name.toUpperCase(), 105, 15, { align: 'center' });
+            
+            doc.setFontSize(14);
+            doc.text(categoryNames[category], 105, 23, { align: 'center' });
+            
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            doc.text(`Fecha: ${new Date().toLocaleDateString('es-CL')}`, 14, 30);
+
+            const sortedTeams = [...championship.teams[category]].sort((a, b) => {
+                if (b.Pts !== a.Pts) return b.Pts - a.Pts;
+                if (b.DG !== a.DG) return b.DG - a.DG;
+                return b.GF - a.GF;
+            });
+
+            const tableData = sortedTeams.map((team, index) => [
+                index + 1, team.nombre, team.PJ, team.PG, team.PE, team.PP,
+                team.GF, team.GC, team.DG, team.Pts
+            ]);
+
+            doc.autoTable({
+                head: [['Pos', 'Equipo', 'PJ', 'PG', 'PE', 'PP', 'GF', 'GC', 'DG', 'Pts']],
+                body: tableData,
+                startY: 35,
+                theme: 'grid',
+                headStyles: {
+                    fillColor: [91, 111, 237],
+                    textColor: 255,
+                    fontStyle: 'bold',
+                    halign: 'center'
+                },
+                bodyStyles: { halign: 'center' },
+                columnStyles: { 1: { halign: 'left' } }
+            });
+
+            let results = [...championship.results[category]].sort((a, b) => 
+                new Date(a.fecha) - new Date(b.fecha)
+            );
+
+            if (desde) results = results.filter(r => r.fecha >= desde);
+            if (hasta) results = results.filter(r => r.fecha <= hasta);
+
+            if (results.length > 0) {
+                // Results header with date range
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'bold');
+                let resultsTitle = 'RESULTADOS';
+                if (desde && hasta) {
+                    resultsTitle += ` (${desde.split('-').reverse().join('/')} - ${hasta.split('-').reverse().join('/')})`;
+                } else if (desde) {
+                    resultsTitle += ` (Desde ${desde.split('-').reverse().join('/')})`;
+                } else if (hasta) {
+                    resultsTitle += ` (Hasta ${hasta.split('-').reverse().join('/')})`;
+                }
+                doc.text(resultsTitle, 14, doc.lastAutoTable.finalY + 10);
+                doc.setFont(undefined, 'normal');
+
+                const resultsData = results.map(r => [
+                    r.fecha.split('-').reverse().join('-'),
+                    r.equipoLocal,
+                    `${r.golesLocal} - ${r.golesVisitante}`,
+                    r.equipoVisitante
+                ]);
+
+                doc.autoTable({
+                    head: [['Fecha', 'Equipo Local', 'Resultado', 'Equipo Visitante']],
+                    body: resultsData,
+                    startY: doc.lastAutoTable.finalY + 10,
+                    theme: 'grid',
+                    headStyles: {
+                        fillColor: [91, 111, 237],
+                        textColor: 255,
+                        fontStyle: 'bold',
+                        halign: 'center'
+                    },
+                    bodyStyles: { halign: 'center' },
+                    columnStyles: { 1: { halign: 'left' }, 3: { halign: 'left' } }
+                });
+            }
+
+            doc.save(`${championship.name}_${categoryNames[category]}_${new Date().toISOString().split('T')[0]}.pdf`);
+        }
+
+        // FUNCIONES PARA EDITAR Y ELIMINAR EQUIPOS
+        let editingTeam = null;
+
+        function editTeam(category, teamId) {
+            const championship = getCurrentChampionship();
+            const team = championship.teams[category].find(t => t.id === teamId);
+            if (!team) return;
+
+            editingTeam = { category, teamId };
+            document.getElementById('editTeamName').value = team.nombre;
+            document.getElementById('editTeamModal').classList.add('active');
+        }
+
+        function closeEditTeamModal() {
+            document.getElementById('editTeamModal').classList.remove('active');
+            editingTeam = null;
+        }
+
+        document.getElementById('editTeamForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if (!editingTeam) return;
+
+            const championship = getCurrentChampionship();
+            const newName = document.getElementById('editTeamName').value.trim();
+            const team = championship.teams[editingTeam.category].find(t => t.id === editingTeam.teamId);
+            
+            if (team) {
+                const oldName = team.nombre;
+                team.nombre = newName;
+
+                // Actualizar nombre en todos los resultados
+                championship.results[editingTeam.category].forEach(result => {
+                    if (result.equipoLocal === oldName) result.equipoLocal = newName;
+                    if (result.equipoVisitante === oldName) result.equipoVisitante = newName;
+                });
+
+                await saveChampionships();
+                renderAllTables();
+                renderAllResults();
+                closeEditTeamModal();
+            }
+        });
+
+        async function deleteTeam(category, teamId) {
+            if (!confirm('¿Está seguro de eliminar este equipo? Se eliminarán también todos sus resultados.')) return;
+
+            const championship = getCurrentChampionship();
+            const team = championship.teams[category].find(t => t.id === teamId);
+            if (!team) return;
+
+            championship.teams[category] = championship.teams[category].filter(t => t.id !== teamId);
+            championship.results[category] = championship.results[category].filter(r => 
+                r.equipoLocal !== team.nombre && r.equipoVisitante !== team.nombre
+            );
+
+            await saveChampionships();
+            renderAllTables();
+            renderAllResults();
+        }
+
+        // FUNCIONES PARA EDITAR Y ELIMINAR RESULTADOS
+        let editingResult = null;
+
+        function editResult(category, resultId) {
+            const championship = getCurrentChampionship();
+            const result = championship.results[category].find(r => r.id === resultId);
+            if (!result) return;
+
+            editingResult = { category, resultId };
+            document.getElementById('editResultFecha').value = result.fecha;
+            document.getElementById('editResultLocal').value = result.equipoLocal;
+            document.getElementById('editResultGolesLocal').value = result.golesLocal;
+            document.getElementById('editResultVisitante').value = result.equipoVisitante;
+            document.getElementById('editResultGolesVisitante').value = result.golesVisitante;
+            document.getElementById('editResultModal').classList.add('active');
+        }
+
+        function closeEditResultModal() {
+            document.getElementById('editResultModal').classList.remove('active');
+            editingResult = null;
+        }
+
+        document.getElementById('editResultForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if (!editingResult) return;
+
+            const championship = getCurrentChampionship();
+            const result = championship.results[editingResult.category].find(r => r.id === editingResult.resultId);
+            
+            if (result) {
+                result.fecha = document.getElementById('editResultFecha').value;
+                result.golesLocal = parseInt(document.getElementById('editResultGolesLocal').value);
+                result.golesVisitante = parseInt(document.getElementById('editResultGolesVisitante').value);
+
+                // Recalcular estadísticas
+                recalculateAllStats(editingResult.category);
+
+                await saveChampionships();
+                renderAllTables();
+                renderAllResults();
+                closeEditResultModal();
+            }
+        });
+
+        async function deleteResult(category, resultId) {
+            if (!confirm('¿Está seguro de eliminar este resultado?')) return;
+
+            const championship = getCurrentChampionship();
+            championship.results[category] = championship.results[category].filter(r => r.id !== resultId);
+
+            recalculateAllStats(category);
+            await saveChampionships();
+            renderAllTables();
+            renderAllResults();
+        }
+
+        function recalculateAllStats(category) {
+            const championship = getCurrentChampionship();
+            
+            // Resetear estadísticas
+            championship.teams[category].forEach(team => {
+                team.PJ = 0; team.PG = 0; team.PE = 0; team.PP = 0;
+                team.GF = 0; team.GC = 0; team.DG = 0; team.Pts = 0;
+            });
+
+            // Recalcular desde resultados
+            championship.results[category].forEach(result => {
+                const teamLocal = championship.teams[category].find(t => t.nombre === result.equipoLocal);
+                const teamVisitante = championship.teams[category].find(t => t.nombre === result.equipoVisitante);
+
+                if (teamLocal && teamVisitante) {
+                    teamLocal.PJ++;
+                    teamVisitante.PJ++;
+                    teamLocal.GF += result.golesLocal;
+                    teamLocal.GC += result.golesVisitante;
+                    teamVisitante.GF += result.golesVisitante;
+                    teamVisitante.GC += result.golesLocal;
+
+                    if (result.golesLocal > result.golesVisitante) {
+                        teamLocal.PG++;
+                        const pts = victoryPoints[category] || 3;
+                        teamLocal.Pts += pts;
+                        teamVisitante.PP++;
+                    } else if (result.golesLocal < result.golesVisitante) {
+                        teamVisitante.PG++;
+                        const pts = victoryPoints[category] || 3;
+                        teamVisitante.Pts += pts;
+                        teamLocal.PP++;
+                    } else {
+                        teamLocal.PE++;
+                        teamVisitante.PE++;
+                        teamLocal.Pts += 1;
+                        teamVisitante.Pts += 1;
+                    }
+
+                    teamLocal.DG = teamLocal.GF - teamLocal.GC;
+                    teamVisitante.DG = teamVisitante.GF - teamVisitante.GC;
+                }
+            });
+        }
+
+        (async function init() {
+            try {
+                await initializeDefaultData();
+                document.getElementById('loadingScreen').style.display = 'none';
+                document.getElementById('loginScreen').style.display = 'flex';
+            } catch (error) {
+                console.error('Init error:', error);
+                document.getElementById('loadingScreen').innerHTML = 
+                    '<div style="color: white; padding: 40px;">❌ Error: ' + error.message + '</div>';
+            }
+        })();
+    </script>
+</body>
+</html>
